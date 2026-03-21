@@ -1,0 +1,47 @@
+/* ============================================================
+   DESIGN TOKENS — All colors, fonts, and spacing in one place.
+   Change a value here and it updates the entire UI.
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap');
+
+:root {
+    /* Background layers */
+    --bg:           #0a0a0f;
+    --surface:      #111118;
+    --border:       #1e1e2e;
+
+    /* Accent — purple */
+    --accent:       #7c6aff;
+    --accent-bright:#a594ff;
+    --accent-glow:  rgba(124, 106, 255, 0.25);
+
+    /* Text */
+    --text:         #e8e8f0;
+    --muted:        #6b6b80;
+
+    /* Success — green */
+    --success:      #4ade9b;
+    --success-glow: rgba(74, 222, 155, 0.2);
+
+    /* Error — red */
+    --error:        #ff6b6b;
+
+    /* Typography */
+    --font-display: 'Syne', sans-serif;
+    --font-mono:    'DM Mono', monospace;
+
+    /* Spacing scale */
+    --space-xs:  8px;
+    --space-sm:  12px;
+    --space-md:  20px;
+    --space-lg:  28px;
+    --space-xl:  36px;
+    --space-2xl: 44px;
+
+    /* Border radii */
+    --radius-sm:  8px;
+    --radius-md:  12px;
+    --radius-lg:  24px;
+    --radius-pill: 100px;
+}

@@ -1,0 +1,38 @@
+/* ============================================================
+   CARD — The main container surface that holds all components.
+   ============================================================ */
+
+.card {
+    position: relative;
+    z-index: 10;
+    width: 100%;
+    max-width: 480px;
+    padding: 0 var(--space-md);
+    animation: cardIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    opacity: 0;
+    transform: translateY(24px);
+}
+
+.card-inner {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: var(--space-2xl) 40px 40px;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Glowing top-edge accent line */
+.card-inner::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 20%;
+    right: 20%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+}
+
+@keyframes cardIn {
+    to { opacity: 1; transform: translateY(0); }
+}

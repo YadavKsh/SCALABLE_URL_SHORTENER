@@ -1,0 +1,103 @@
+/* ============================================================
+   RESULT — Success box with short URL and copy button.
+   ERROR  — Inline error message below the form.
+   ============================================================ */
+
+/* --- Result box --- */
+
+#result {
+    margin-top: var(--space-lg);
+    display: none;
+    animation: resultIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.result-box {
+    background: rgba(74, 222, 155, 0.06);
+    border: 1px solid rgba(74, 222, 155, 0.2);
+    border-radius: var(--radius-md);
+    padding: 16px 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-sm);
+}
+
+.result-left {
+    min-width: 0; /* allows text-overflow: ellipsis to work */
+}
+
+.result-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--success);
+    margin-bottom: 4px;
+}
+
+#shortUrl {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--text);
+    text-decoration: none;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: block;
+    transition: color 0.2s;
+}
+
+#shortUrl:hover { color: var(--accent-bright); }
+
+/* Copy to clipboard button */
+.copy-btn {
+    flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+    background: rgba(74, 222, 155, 0.1);
+    border: 1px solid rgba(74, 222, 155, 0.25);
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--success);
+    padding: 0;
+    box-shadow: none;
+    transition: background 0.2s, transform 0.15s;
+}
+
+.copy-btn:hover {
+    background: rgba(74, 222, 155, 0.18);
+    transform: scale(1.05);
+    box-shadow: none;
+}
+
+.copy-btn:active  { transform: scale(0.95); }
+
+.copy-btn.copied {
+    background: rgba(74, 222, 155, 0.2);
+    border-color: var(--success);
+}
+
+/* --- Error message --- */
+
+.error-msg {
+    margin-top: var(--space-sm);
+    padding: var(--space-sm) 16px;
+    background: rgba(255, 107, 107, 0.08);
+    border: 1px solid rgba(255, 107, 107, 0.2);
+    border-radius: 10px;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    letter-spacing: 0.01em;
+    color: var(--error);
+    display: none;
+}
+
+/* --- Animations --- */
+
+@keyframes resultIn {
+    from { opacity: 0; transform: translateY(8px) scale(0.98); }
+    to   { opacity: 1; transform: translateY(0)   scale(1); }
+}

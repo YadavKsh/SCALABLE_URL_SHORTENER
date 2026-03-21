@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>URL Shortener</title>
+
+    <!--
+        CSS load order matters:
+        1. variables  — design tokens (used by everything below)
+        2. base       — reset and body defaults
+        3. background — ambient orbs and grid texture
+        4. card       — main surface container
+        5. header     — logo badge, headline, subtitle
+        6. form       — input, label, submit button, spinner
+        7. result     — success box, short URL, copy button
+        8. footer     — metadata line below card
+    -->
+    <link rel="stylesheet" href="css/variables.css">
+    <link rel="stylesheet" href="css/base.css">
+    <link rel="stylesheet" href="css/background.css">
+    <link rel="stylesheet" href="css/card.css">
+    <link rel="stylesheet" href="css/header.css">
+    <link rel="stylesheet" href="css/form.css">
+    <link rel="stylesheet" href="css/result.css">
+    <link rel="stylesheet" href="css/footer.css">
+</head>
+
+<body>
+
+<!-- ── Background ───────────────────────────────────────
+     Purely decorative. Grid texture sits over the ambient
+     orbs that are rendered via body::before / body::after.
+──────────────────────────────────────────────────────── -->
+<div class="grid-overlay" aria-hidden="true"></div>
+
+
+<!-- ── Card ─────────────────────────────────────────────
+     The main container. Everything the user interacts
+     with lives inside .card-inner.
+──────────────────────────────────────────────────────── -->
+<div class="card">
+    <div class="card-inner">
+
+
+        <!-- ── Header ───────────────────────────────────
+             Logo badge + headline + subtitle.
+        ─────────────────────────────────────────────── -->
+        <header class="header">
+            <div class="logo-badge">
+                <div class="logo-dot"></div>
+                <span class="logo-text">URL Shortener</span>
+            </div>
+            <h1>Make it <span>short</span>.</h1>
+            <p class="subtitle">Paste a long link, get a clean one instantly.</p>
+        </header>
+
+
+        <!-- ── Input ────────────────────────────────────
+             URL text field with an inline link icon.
+             Enter key is handled in app.js.
+        ─────────────────────────────────────────────── -->
+        <div class="input-group">
+            <label class="input-label" for="urlInput">Your long URL</label>
+            <div class="input-wrap">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="2"
+                     stroke-linecap="round" stroke-linejoin="round"
+                     aria-hidden="true">
+                    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+                    <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+                </svg>
+                <input
+                        id="urlInput"
+                        type="text"
+                        placeholder="https://example.com/very/long/url..."
+                        autocomplete="off"
+                        spellcheck="false"
+                />
+            </div>
+        </div>
+
+
+        <!-- ── Submit Button ─────────────────────────────
+             Disabled + shows spinner during API call.
+             Restored to default in the finally block in app.js.
+        ─────────────────────────────────────────────── -->
+        <div class="btn-wrap">
+            <button type="submit" id="submitBtn" onclick="shortenUrl()">
+                <span id="btnText">Shorten URL</span>
+                <div class="spinner" id="spinner" aria-hidden="true"></div>
+            </button>
+        </div>
+
+
+        <!-- ── Error Message ─────────────────────────────
+             Hidden by default. Shown by showError() in app.js.
+             Resets on each new submission attempt.
+        ─────────────────────────────────────────────── -->
+        <div class="error-msg" id="errorMsg" role="alert"></div>
+
+
+        <!-- ── Result ───────────────────────────────────
+             Hidden by default. Revealed after a successful
+             API response. Contains the short URL and a
+             copy-to-clipboard button.
+        ─────────────────────────────────────────────── -->
+        <div id="result" aria-live="polite">
+            <div class="result-box">
+                <div class="result-left">
+                    <div class="result-label">✓ Short URL ready</div>
+                    <a id="shortUrl" href="#" target="_blank" rel="noopener noreferrer"></a>
+                </div>
+                <button class="copy-btn" id="copyBtn"
+                        onclick="copyUrl()" title="Copy to clipboard"
+                        aria-label="Copy short URL to clipboard">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+                         stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+
+    </div><!-- /.card-inner -->
+
+
+    <!-- ── Footer ───────────────────────────────────────
+         Sits outside .card-inner so it appears below
+         the card surface, not inside it.
+    ─────────────────────────────────────────────────── -->
+    <footer class="footer">
+        Built with <span>Spring Boot</span>
+    </footer>
+
+</div><!-- /.card -->
+
+
+<!-- ── Scripts ──────────────────────────────────────────
+     Loaded at the end of body so the DOM is ready.
+──────────────────────────────────────────────────────── -->
+<script src="js/app.js"></script>
+
+</body>
+</html>
