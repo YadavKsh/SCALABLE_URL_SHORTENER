@@ -12,13 +12,13 @@ import java.util.Random;
 public class UrlShortenerService {
 
     private final UrlRepository repository;
-    private final StringRedisTemplate redisTemplate;
+    //private final StringRedisTemplate redisTemplate;
     private static final String CHARSET = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
     private static final int BASE = CHARSET.length();
 
-    public UrlShortenerService(UrlRepository repository, StringRedisTemplate redisTemplate) {
+    public UrlShortenerService(UrlRepository repository) {
         this.repository = repository;
-        this.redisTemplate = redisTemplate;
+        //this.redisTemplate = redisTemplate;
     }
 
     public String shortenUrl(String originalUrl) {
@@ -39,7 +39,7 @@ public class UrlShortenerService {
         Url url = new Url(shortCode, originalUrl);
         repository.save(url);
         // 🔥 Cache it
-        redisTemplate.opsForValue().set(shortCode, originalUrl);
+        //redisTemplate.opsForValue().set(shortCode, originalUrl);
 
         return shortCode;
     }
@@ -47,7 +47,8 @@ public class UrlShortenerService {
     public String getOriginalUrl(String shortCode) {
 
         // 🔥 1. Check Redis first
-        String cachedUrl = redisTemplate.opsForValue().get(shortCode);
+        String cachedUrl = null;
+                // redisTemplate.opsForValue().get(shortCode);
 
         if (cachedUrl != null) {
             System.out.println("⚡ Served from Redis");
@@ -61,7 +62,7 @@ public class UrlShortenerService {
             String originalUrl = url.get().getOriginalUrl();
 
             // 🔥 3. Store in Redis
-            redisTemplate.opsForValue().set(shortCode, originalUrl);
+            //redisTemplate.opsForValue().set(shortCode, originalUrl);
 
             System.out.println("💾 Fetched from DB and cached");
 
