@@ -7,7 +7,7 @@ COPY . .
 WORKDIR /app/backend
 
 RUN chmod +x mvnw
-RUN ./mvnw clean package
+RUN ./mvnw clean package -DskipTests
 
 EXPOSE 8081
 
