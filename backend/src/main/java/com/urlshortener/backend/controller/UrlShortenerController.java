@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.*;
 import java.net.URI;
 import java.util.Map;
 
-@CrossOrigin(origins = "https://url-shortener-spring.netlify.app")
+@CrossOrigin(origins = "*")
 @RestController
 public class UrlShortenerController {
 
