@@ -27,7 +27,7 @@ public class UrlShortenerController {
             return ResponseEntity.badRequest().body(Map.of("error", "Invalid URL"));
         }
 
-        String shortCode = service.shortenOriginalUrl(originalUrl);
+        String shortCode = service.shortenUrl(originalUrl);
 
         String shortUrl = "http://localhost:8081/" + shortCode;
 

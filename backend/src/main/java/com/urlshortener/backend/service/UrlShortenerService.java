@@ -1,40 +1,74 @@
 package com.urlshortener.backend.service;
 
+import com.urlshortener.backend.model.Url;
+import com.urlshortener.backend.repository.UrlRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.data.redis.core.StringRedisTemplate;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.Optional;
 import java.util.Random;
 
 @Service
 public class UrlShortenerService {
 
-    private final Map<String, String> shortToLong = new HashMap<>();
-    private final Map<String, String> longToShort = new HashMap<>();
+    private final UrlRepository repository;
+    private final StringRedisTemplate redisTemplate;
     private static final String CHARSET = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
     private static final int BASE = CHARSET.length();
 
-    public String shortenOriginalUrl(String originalUrl) {
+    public UrlShortenerService(UrlRepository repository, StringRedisTemplate redisTemplate) {
+        this.repository = repository;
+        this.redisTemplate = redisTemplate;
+    }
 
-        // ✅ If already exists, return existing short code
-        if (longToShort.containsKey(originalUrl)) {
-            return longToShort.get(originalUrl);
+    public String shortenUrl(String originalUrl) {
+
+        // ✅ Check duplicate
+        Optional<Url> existing = repository.findByOriginalUrl(originalUrl);
+        if (existing.isPresent()) {
+            return existing.get().getShortCode();
         }
 
         String shortCode = generateShortCode();
 
-        while (shortToLong.containsKey(shortCode)) {
+        // ✅ Handle collision
+        while (repository.findByShortCode(shortCode).isPresent()) {
             shortCode = generateShortCode();
         }
 
-        shortToLong.put(shortCode, originalUrl);
-        longToShort.put(originalUrl, shortCode);
+        Url url = new Url(shortCode, originalUrl);
+        repository.save(url);
+        // 🔥 Cache it
+        redisTemplate.opsForValue().set(shortCode, originalUrl);
 
         return shortCode;
     }
 
     public String getOriginalUrl(String shortCode) {
-        return shortToLong.get(shortCode);
+
+        // 🔥 1. Check Redis first
+        String cachedUrl = redisTemplate.opsForValue().get(shortCode);
+
+        if (cachedUrl != null) {
+            System.out.println("⚡ Served from Redis");
+            return cachedUrl;
+        }
+
+        // 🔹 2. Fallback to DB
+        Optional<Url> url = repository.findByShortCode(shortCode);
+
+        if (url.isPresent()) {
+            String originalUrl = url.get().getOriginalUrl();
+
+            // 🔥 3. Store in Redis
+            redisTemplate.opsForValue().set(shortCode, originalUrl);
+
+            System.out.println("💾 Fetched from DB and cached");
+
+            return originalUrl;
+        }
+
+        return null;
     }
 
     private String generateShortCode() {
