@@ -2,7 +2,7 @@
    app.js — All client-side logic for the URL Shortener UI.
    ============================================================ */
 
-const API_URL = "http://localhost:8081/shorten";
+const API_URL = "https://url-shortener-bhrd.onrender.com";
 
 /* ── Shorten URL ──────────────────────────────────────────── */
 
@@ -36,7 +36,7 @@ async function shortenUrl() {
     spinner.style.display  = "block";
 
     try {
-        const response = await fetch(API_URL, {
+        const response = await fetch(`${API_URL}/shorten`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ url: input })
