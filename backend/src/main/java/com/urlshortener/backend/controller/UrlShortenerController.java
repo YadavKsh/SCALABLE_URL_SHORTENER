@@ -3,6 +3,7 @@ package com.urlshortener.backend.controller;
 import com.urlshortener.backend.service.UrlShortenerService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.net.URI;
 import java.util.Map;
@@ -29,7 +30,8 @@ public class UrlShortenerController {
 
         String shortCode = service.shortenUrl(originalUrl);
 
-        String shortUrl = "http://localhost:8081/" + shortCode;
+        String baseUrl = ServletUriComponentsBuilder.fromCurrentContextPath().build().toUriString();
+        String shortUrl = baseUrl + "/" + shortCode;
 
         return ResponseEntity.ok(Map.of(
                 "shortUrl", shortUrl,
