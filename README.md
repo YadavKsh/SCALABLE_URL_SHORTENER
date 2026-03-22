@@ -1,6 +1,8 @@
-# 🔗 URL Shortener — Project Overview
+# 🔗 URL Shortener
 
 > A backend service that converts long URLs into short, shareable links and redirects users to the original destination — similar to [Bitly](https://bitly.com) or [TinyURL](https://tinyurl.com).
+
+🌐 **Live Demo:** [https://url-shortener-spring.netlify.app](https://url-shortener-spring.netlify.app)
 
 ---
 
@@ -12,6 +14,7 @@
   - [Phase 1 — URL Shortening](#phase-1--url-shortening-creation)
   - [Phase 2 — Redirection](#phase-2--redirection-usage)
   - [The Core Mapping](#-the-core-mapping)
+- [Tech Stack](#-tech-stack)
 - [API Design](#-api-design)
 - [Storage Strategy](#-storage-strategy)
 - [Future Enhancements](#-future-enhancements)
@@ -26,7 +29,7 @@ A URL Shortener takes a long, unwieldy URL and produces a short alias that redir
 ```
 https://example.com/some/very/long/url/with/many/parameters?ref=campaign&utm_source=email
                               ↓
-                  http://localhost:8080/abc123
+                  https://url-shortener-spring.netlify.app/abc123
 ```
 
 That's the entire job — store a mapping, serve a redirect.
@@ -65,7 +68,7 @@ Backend generates a unique short code  (e.g. "abc123")
         ↓
 System stores the mapping:  "abc123" → "https://example.com/..."
         ↓
-Short URL returned to user:  http://localhost:8080/abc123
+Short URL returned to user:  https://url-shortener-spring.netlify.app/abc123
 ```
 
 **Short code generation** is a key design decision. Common approaches:
@@ -76,7 +79,7 @@ Short URL returned to user:  http://localhost:8080/abc123
 | Hash-based | MD5 / SHA of the original URL, take first N chars | Deterministic — same URL always yields same code |
 | Counter-based | Auto-increment ID encoded in Base62 | Predictable, sequential — easy to enumerate |
 
-For this project, we start with **random alphanumeric** (`Base62`, 6 characters = 56 billion possible codes).
+This project uses **random Base62** (6 characters = 56 billion possible codes).
 
 ---
 
@@ -85,7 +88,7 @@ For this project, we start with **random alphanumeric** (`Base62`, 6 characters 
 This phase runs every time someone opens the short link.
 
 ```
-User visits http://localhost:8080/abc123 in browser
+User visits https://url-shortener-spring.netlify.app/abc123 in browser
         ↓
 Backend extracts the short code: "abc123"
         ↓
@@ -101,7 +104,7 @@ Returns HTTP 302 redirect → browser navigates to original URL
 | `301 Moved Permanently` | Permanent | Browser caches the redirect — won't hit your server again |
 | `302 Found` | Temporary | Browser always checks your server — lets you update or expire links |
 
-Use `302` during development and when you want analytics (each visit hits your server). Use `301` only if links are truly permanent and you want to offload traffic.
+`302` is used here so every redirect hits the server, enabling future analytics and link expiry.
 
 ---
 
@@ -117,7 +120,21 @@ shortCode  ──────────────────►  originalUr
 - The **shortening phase** writes this mapping
 - The **redirection phase** reads this mapping
 
-Every other feature in this project (persistence, caching, analytics) is just an optimisation layered on top of this single relationship.
+Every other feature in this project (persistence, caching, analytics) is an optimisation layered on top of this single relationship.
+
+---
+
+## 🛠️ Tech Stack
+
+| Layer | Technology |
+|---|---|
+| **Frontend** | HTML, Tailwind CSS, Vanilla JavaScript |
+| **Backend** | Java 21, Spring Boot 3.x |
+| **Database** | PostgreSQL (Render) |
+| **Cache** | Redis (Upstash) |
+| **Containerisation** | Docker |
+| **Frontend Hosting** | Netlify |
+| **Backend Hosting** | Render |
 
 ---
 
@@ -142,12 +159,11 @@ Content-Type: application/json
 HTTP/1.1 200 OK
 
 {
-  "shortUrl": "http://localhost:8080/abc123",
-  "shortCode": "abc123"
+  "shortUrl": "https://your-backend.onrender.com/abc123",
+  "shortCode": "abc123",
+  "originalUrl": "https://example.com/some/very/long/url"
 }
 ```
-
-Triggered by: a frontend form, a button click, or an API client like Postman.
 
 ---
 
@@ -164,38 +180,31 @@ HTTP/1.1 302 Found
 Location: https://example.com/some/very/long/url
 ```
 
-Triggered by: entering the short URL directly in a browser address bar.
-
 > **⚠️ Important concept:** The browser address bar always fires a **GET** request. POST requests must be triggered programmatically — via a form submission, JavaScript `fetch`, or an API tool. This is why shortening (which creates data) uses `POST` and redirection (which only reads data) uses `GET`.
 
 ---
 
 ## 🗄️ Storage Strategy
 
-### Phase 1 — In-Memory (Current)
-
-For the initial implementation, mappings are stored in a `HashMap` in application memory:
-
-```java
-// Simple, no setup required — perfect for getting the logic right first
-Map<String, String> urlStore = new HashMap<>();
-
-// Store:  urlStore.put("abc123", "https://example.com/...");
-// Lookup: urlStore.get("abc123");
-```
-
-**Limitations:**
-- All data is lost when the application restarts
-- Cannot scale across multiple server instances
-- No persistence, no querying
-
-This is intentional — get the core logic right before introducing infrastructure complexity.
+All three storage phases are fully implemented and running in production.
 
 ---
 
-### Phase 2 — Database (Planned)
+### Phase 1 — In-Memory ✅ (Development only)
 
-Replace `HashMap` with a PostgreSQL table:
+Used during early development to validate the core logic without any infrastructure:
+
+```java
+Map<String, String> urlStore = new HashMap<>();
+```
+
+Replaced by PostgreSQL once the logic was confirmed working. Not used in production.
+
+---
+
+### Phase 2 — PostgreSQL ✅ (Production)
+
+All URL mappings are stored permanently in a managed PostgreSQL instance on Render:
 
 ```sql
 CREATE TABLE url_mappings (
@@ -206,22 +215,22 @@ CREATE TABLE url_mappings (
 );
 ```
 
-Data survives restarts, supports analytics, and works across multiple server instances.
+Data survives server restarts, supports deduplication (same URL always returns the same short code), and serves as the single source of truth for the system.
 
 ---
 
-### Phase 3 — Cache Layer (Planned)
+### Phase 3 — Redis Cache ✅ (Production)
 
-Add Redis in front of the database for high-traffic short codes:
+Redis (via Upstash) sits in front of PostgreSQL and handles the majority of redirect lookups without touching the database:
 
 ```
 Request for /abc123
         ↓
-Check Redis cache → HIT → return immediately (sub-millisecond)
-                 → MISS → query PostgreSQL → cache result → return
+Check Redis (Upstash) → HIT  → return immediately ⚡ (sub-millisecond)
+                      → MISS → query PostgreSQL → cache result → return
 ```
 
-Redirects are read-heavy and the data rarely changes — a perfect use case for caching.
+On a cache miss, the result is stored in Redis so every subsequent request for the same short code is served from memory. New short codes are also written to Redis immediately on creation, so the very first redirect is already a cache hit.
 
 ---
 
@@ -229,14 +238,11 @@ Redirects are read-heavy and the data rarely changes — a perfect use case for 
 
 | Feature | Description |
 |---|---|
-| 🗃️ Database persistence | PostgreSQL — survive restarts, enable analytics |
-| ⚡ Redis caching | Cache hot links for sub-millisecond redirects |
 | ✏️ Custom short codes | Let users choose their own alias (`/my-link`) |
 | 📊 Click analytics | Track visits per short code (count, timestamp, location) |
 | ⏳ Link expiration | Short codes that automatically become invalid after a set time |
 | 🔒 Rate limiting | Prevent abuse of the `/shorten` endpoint |
 | 🔑 User accounts | Private links, dashboards, link management |
-| 🐳 Containerisation | Docker + Docker Compose for portable deployment |
 
 ---
 
@@ -251,4 +257,4 @@ Store:     shortCode → originalUrl
 Retrieve:  shortCode → redirect → originalUrl
 ```
 
-Everything else — the database, the cache, the analytics, the scaling — is built around making this simple operation faster, more reliable, and more useful. Start with the mapping. Build outward from there.
+Everything else — the database, the cache, the analytics, the scaling — is built around making this simple operation faster, more reliable, and more useful.

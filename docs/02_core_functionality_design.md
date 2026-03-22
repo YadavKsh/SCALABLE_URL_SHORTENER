@@ -12,7 +12,7 @@
 - [Flow 2 — URL Redirection (Usage)](#-flow-2--url-redirection-usage)
 - [How the Two Flows Connect](#-how-the-two-flows-connect)
 - [API Contracts](#-api-contracts)
-- [Initial Implementation — In-Memory Storage](#-initial-implementation--in-memory-storage)
+- [Initial Implementation — Storage Evolution](#-implementation--storage-evolution)
 - [Key Takeaway](#-key-takeaway)
 
 ---
@@ -237,9 +237,15 @@ Content-Type: application/json
 
 ---
 
-## 🗄️ Initial Implementation — In-Memory Storage
+## 🗄️ Implementation — Storage Evolution
 
-For the first working version, mappings are stored in a `HashMap` in application memory. No database, no configuration — just logic.
+The project was built in three deliberate phases, each replacing the previous storage layer. This progression is documented here because understanding *why* each layer was added matters as much as knowing *how* it works.
+
+---
+
+### Phase 1 — In-Memory (`HashMap`) ✅ Development only
+
+The very first version used a plain `HashMap` — no setup, no dependencies, pure logic:
 
 ```java
 @Service
@@ -257,25 +263,55 @@ public class UrlShortenerService {
     public String getOriginalUrl(String shortCode) {
         return urlStore.get(shortCode); // returns null if not found
     }
-
-    private String generateShortCode() {
-        // Random 6-character alphanumeric code
-        return UUID.randomUUID().toString().substring(0, 6);
-    }
 }
 ```
 
-### Trade-offs of This Approach
+The goal at this stage was to get the two flows correct — not to build infrastructure. Once `POST /shorten` and `GET /{shortCode}` were working end-to-end, the storage layer was swapped out. The controller never changed.
 
-| Aspect | In-Memory (`HashMap`) | Database (next step) |
+---
+
+### Phase 2 — PostgreSQL ✅ Production (via Render)
+
+The `HashMap` was replaced with a JPA-managed PostgreSQL table. The service now calls a `UrlRepository` instead of a map:
+
+```java
+// Save new mapping
+Url url = new Url(shortCode, originalUrl);
+repository.save(url);
+
+// Look up by short code
+Optional<Url> result = repository.findByShortCode(shortCode);
+```
+
+What this unlocked compared to the HashMap:
+
+| Aspect | HashMap | PostgreSQL |
 |---|---|---|
-| Setup required | None | PostgreSQL install + config |
 | Data survives restart | ❌ No | ✅ Yes |
 | Works across multiple servers | ❌ No | ✅ Yes |
-| Query / filter / sort data | ❌ No | ✅ Yes |
-| Speed | ✅ Extremely fast | Slightly slower (network I/O) |
+| Deduplication (same URL → same code) | ❌ No | ✅ Yes |
+| Query / filter / sort | ❌ No | ✅ Yes |
 
-**Start here.** Get the logic right first. Replace the `HashMap` with a database once the core flow is working end-to-end — swapping the storage layer is straightforward when the service is properly structured.
+---
+
+### Phase 3 — Redis Cache ✅ Production (via Upstash)
+
+With PostgreSQL as the source of truth, Redis was added in front of it as a read cache. The redirect path (`GET /{shortCode}`) is the highest-frequency operation in the system — every click on a short link triggers it. Redis handles the majority of these without touching the database:
+
+```
+GET /{shortCode}
+       ↓
+Check Redis → HIT  → return immediately ⚡
+           → MISS → query PostgreSQL → store in Redis → return
+```
+
+New short codes are also written to Redis immediately on creation, so the very first redirect for any link is already a cache hit — not just subsequent ones.
+
+| Aspect | PostgreSQL alone | PostgreSQL + Redis |
+|---|---|---|
+| Redirect speed | ~5–10ms (disk I/O) | <1ms (RAM) on cache hit |
+| Database load on popular links | Every request hits DB | Only the first request hits DB |
+| Data permanence | ✅ Permanent | Redis is a cache — PostgreSQL remains the source of truth |
 
 ---
 
